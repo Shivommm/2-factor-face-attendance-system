@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Video</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 3px solid white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            color: #fff;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            background: #ff4757;
+        }
+    </style>
+</head>
+
+
+
+
+
+<body>
+    <div>
+        <h2>Live Face Recognition</h2>
+    
+    <!-- Show local video stream -->
+    <video id="client_video" width="640" height="480" autoplay playsinline></video>
+    </div>
+
+    <script>
+        const socket = io("https://9435-2401-4900-8854-319c-d137-9303-8184-a4f6.ngrok-free.app"); // Change to actual server IP
+d
+        const video = document.getElementById("videoElement");
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        
+        function sendVideoFrame() {
+            if (video.readyState === 4) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((blob) => {
+                    const reader = new FileReader();
+                    reader.readAsArrayBuffer(blob);
+                    reader.onloadend = () => {
+                        socket.emit("video_frame", { frame: reader.result });
+                    };
+                }, "image/jpeg");
+            }
+        }
+        
+        // Send frames every 100ms
+        setInterval(sendVideoFrame, 100);
+        
+
+        (async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { frameRate: 10 } });
+
+                video.srcObject = stream; // Show local video feed
+
+                const offscreenCanvas = document.createElement("canvas");
+                const offscreenCtx = offscreenCanvas.getContext("2d");
+
+                setInterval(() => {
+                    offscreenCanvas.width = video.videoWidth;
+                    offscreenCanvas.height = video.videoHeight;
+                    offscreenCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                    
+                    // Convert to Blob and send to server
+                    offscreenCanvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.readAsArrayBuffer(blob);
+                        reader.onloadend = () => {
+                            socket.emit("video_frame", reader.result);
+                        };
+                    }, "image/jpeg", 0.6);
+                }, 100);  // Adjust for performance
+
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+                alert("Camera access denied. Please allow permissions.");
+            }
+        })();
+    </script>
+</body>
+</html>

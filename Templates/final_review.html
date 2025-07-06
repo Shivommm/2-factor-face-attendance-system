@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Marking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            border-radius: 50%;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+        }
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Attendance Marking</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Student Name</th>
+                <th>Marked</th>
+            </tr>
+        </thead>
+        <tbody id="attendanceTable"></tbody>
+    </table>
+
+    <button onclick="submitAttendance()">Submit</button>
+
+    <script>
+        // Fetch the attendance data from the Flask backend
+        async function loadAttendance() {
+            const response = await fetch('/get_attendance');
+            const data = await response.json();
+            const table = document.getElementById('attendanceTable');
+            
+            table.innerHTML = '';  // Clear existing rows
+            console.log(data)
+            data.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${student[1]}</td>
+                    <td>
+                        <label class="switch">
+                            <input type="checkbox" ${student[2]==1 ? 'checked' : ''} 
+                                onchange="toggleMarked(${student[0]},${student[3]}, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </td>
+                `;
+                table.appendChild(row);
+            });
+        }
+
+        // Toggle the "marked" status and update in the backend
+        async function toggleMarked(id,timestamp, marked) {
+            await fetch('/update_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, marked,timestamp })
+            });
+        }
+
+        // Optionally, submit all marked attendance changes (this function can be customized if needed)
+        async function submitAttendance() {
+            alert("Changes submitted!");
+            // Add further logic here if needed to handle submission actions
+        }
+
+        // Load attendance on page load
+        window.onload = loadAttendance;
+    </script>
+
+</body>
+</html>

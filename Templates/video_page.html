@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Face Recognition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 700px;
+        }
+        h2 {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border-radius: 10px;
+            border: 3px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Live Face Recognition</h2>
+        <video id="client_video" autoplay playsinline></video>
+    </div>
+
+    <script>
+        const video = document.getElementById("client_video");
+        const socket = io("https://9435-2401-4900-8854-319c-d137-9303-8184-a4f6.ngrok-free.app");  // Replace with your current ngrok URL
+
+        (async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { frameRate: 10 } });
+
+                video.srcObject = stream; // Show local video feed
+
+                const offscreenCanvas = document.createElement("canvas");
+                const offscreenCtx = offscreenCanvas.getContext("2d");
+
+                setInterval(() => {
+                    offscreenCanvas.width = video.videoWidth;
+                    offscreenCanvas.height = video.videoHeight;
+                    offscreenCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                    
+                    // Convert to Blob and send to server
+                    offscreenCanvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.readAsArrayBuffer(blob);
+                        reader.onloadend = () => {
+                            socket.emit("video_frame", { frame: reader.result });
+                        };
+                    }, "image/jpeg", 0.6);
+                }, 100);  // Adjust for performance
+
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+                alert("Camera access denied. Please allow permissions.");
+            }
+        })();
+    </script>
+</body>
+</html>
